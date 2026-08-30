@@ -1,0 +1,22 @@
+{
+  "name": "send_email",
+  "description": "Send an email on behalf of the authenticated user.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "to": {
+        "type": "string",
+        "description": "Recipient email address"
+      },
+      "subject": {
+        "type": "string",
+        "description": "Email subject line"
+      },
+      "body": {
+        "type": "string",
+        "description": "Plain-text email body"
+      }
+    },
+    "required": ["to", "subject", "body"]
+  }
+}
