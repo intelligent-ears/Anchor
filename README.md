@@ -81,11 +81,15 @@ infrastructure (not mocked):
 - ✅ `anchor verify` on a silently mutated, unsigned schema — prints
   `BLOCKED: unattested schema change detected` and exits non-zero. This
   is the core rug-pull-detection claim, and it's been confirmed working.
-- ⚠️ `anchor rotate-identity` and the resulting "identity changed, but an
-  attested rotation bridges it → OK" path are implemented and documented
-  (see [Trying identity rotation](#trying-identity-rotation)) but have
-  **not** been exercised against live infrastructure yet. Treat that path
-  as unverified until someone runs it end to end.
+- ✅ `anchor rotate-identity`, and the resulting "identity changed, but an
+  attested rotation bridges it → OK" path, have been live-tested end to
+  end against the real, public Sigstore/Rekor infrastructure (see
+  [Trying identity rotation](#trying-identity-rotation)). `anchor verify`
+  printed `OK: schema matches latest attested revision.` with an explicit
+  `Publisher identity rotated: <old> -> <new> (attested rotation, Rekor
+  index <n>)` line, rather than flagging the identity change as
+  suspicious. This was the last unverified piece of Anchor — every
+  documented code path has now been exercised live.
 - ⚠️ The "FLAGGED: publisher identity changed without an attested
   rotation" path (identity switch with *no* rotation record) is exercised
   by construction whenever the rotation path above hasn't been run first,
@@ -192,9 +196,9 @@ throwaway `--state-dir`, so it won't touch anything in the repo.
 
 ### Trying identity rotation
 
-*(Per [Status](#status): implemented and documented, not yet exercised
-against live infrastructure — this walkthrough is untested as written.
-If you run it, two more real Rekor entries get created.)*
+*(Per [Status](#status): live-tested against the real Sigstore/Rekor
+infrastructure. If you run this, two more real, permanent Rekor entries
+get created — the rotation attestation and the re-signed schema.)*
 
 To see the third path — an identity change that Anchor accepts because
 it's attested — sign the same tool again with a *second* OIDC identity
@@ -217,10 +221,42 @@ $BIN rotate-identity --tool-id send_email \
 # authenticate as new@example.com when prompted here:
 $BIN sign --tool-id send_email \
   --publisher-identity new@example.com --schema-version 1.0.1 --state-dir "$STATE" "$SCHEMA"
-
-$BIN verify --tool-id send_email --state-dir "$STATE" "$SCHEMA"
-# -> OK, and mentions the attested identity rotation
 ```
+
+> [!NOTE]
+> `anchor sign` always fast-forwards *its own* `--state-dir`'s local
+> known-good cache to whatever it just signed (that's how a publisher's
+> own client stays in sync with its own latest revision). So running
+> `verify --state-dir "$STATE"` immediately after the commands above,
+> against that *same* `$STATE`, will just print the plain "OK: schema
+> matches latest attested revision." — the known-good identity was
+> already fast-forwarded to the new one by the second `sign` call, so
+> there's no identity mismatch left for `verify` to reconcile.
+>
+> To actually see the rotation-acceptance branch fire, simulate a
+> *second* client — e.g. an MCP client that trusted the tool at v1.0.0
+> under the old identity and hasn't seen anything since — by pointing
+> `verify` at a different `--state-dir` whose `state.json` still has
+> `publisherIdentity` set to `old@example.com` (copy `$STATE/log-index.json`
+> into it unchanged, so it still has pointers to the real Rekor entries):
+>
+> ```sh
+> VERIFIER=$(mktemp -d)/.anchor
+> mkdir -p "$VERIFIER"
+> cp "$STATE/log-index.json" "$VERIFIER/log-index.json"
+> cat > "$VERIFIER/state.json" <<EOF
+> {"send_email": {"toolId": "send_email", "schemaHash": "<v1.0.0's sha256:... from the first sign's output>", "publisherIdentity": "old@example.com", "schemaVersion": "1.0.0", "updatedAt": "<its timestamp>"}}
+> EOF
+>
+> $BIN verify --tool-id send_email --state-dir "$VERIFIER" "$SCHEMA"
+> # -> OK, and mentions the attested identity rotation
+> ```
+>
+> Every record `verify` uses here — the schema-manifest and the
+> identity-rotation attestation — is still re-verified cryptographically
+> and re-confirmed live on the public Rekor log; only the local
+> "which revision did I previously trust" pointer is hand-constructed,
+> exactly modeling what a second client's own `state.json` would contain.
 
 If you skip the `rotate-identity` step and just re-sign with a different
 identity, the final `verify` will print `FLAGGED: publisher identity
@@ -257,8 +293,13 @@ ETDI.
 - `previousSchemaHash` chaining is recorded but not currently enforced as
   a strict linear history during `verify` — a gap worth closing before
   this goes beyond prototype stage.
-- `rotate-identity` is implemented and documented but not yet live-tested
-  (see [Status](#status)).
+- There is no way for a second Anchor client to learn about attestations
+  it didn't itself sign — the public Rekor API has no "search by toolId"
+  endpoint, so a client's `log-index.json` only ever grows via that
+  client's own `sign`/`rotate-identity` calls (see the note in
+  [Trying identity rotation](#trying-identity-rotation)). A real
+  multi-client deployment would need some out-of-band way to distribute
+  these pointers.
 - No security review has been done. Anchor's own predicate types
   (`https://anchor.dev/schema-manifest/v1`,
   `https://anchor.dev/identity-rotation/v1`) are project-local
