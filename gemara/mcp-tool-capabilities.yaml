@@ -1,0 +1,28 @@
+title: MCP Tool Schema Distribution Capability Catalog
+metadata:
+  id: ANCHOR.MCP.TOOLSCHEMA
+  type: CapabilityCatalog
+  gemara-version: "v1.3.0"
+  description: Capabilities for MCP tool schema distribution and trust.
+  version: "0.1.0"
+  draft: true
+  author:
+    id: anchor-maintainers
+    name: Anchor Maintainers
+    type: Software Assisted
+groups:
+  - id: tool-lifecycle
+    title: Tool Lifecycle & Trust
+    description: >
+      Capabilities governing how an MCP tool's schema is published,
+      discovered, approved, and kept trustworthy by clients across its
+      lifecycle.
+capabilities:
+  - id: ANCHOR.MCP.TOOLSCHEMA.CAP01
+    title: Tool Schema Publication & Discovery
+    description: >
+      The mechanism by which an MCP tool's schema/definition is published,
+      discovered by clients, approved on first use, and by which any
+      subsequent changes are (or are not) communicated back to previously
+      approving clients.
+    group: tool-lifecycle

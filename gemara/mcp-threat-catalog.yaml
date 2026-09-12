@@ -1,0 +1,78 @@
+title: MCP Tool Schema Distribution Security Threat Catalog
+metadata:
+  id: ANCHOR.MCP.TOOLSCHEMA
+  type: ThreatCatalog
+  gemara-version: "v1.3.0"
+  description: >
+    Threats to the trustworthiness of an MCP (Model Context Protocol) tool's
+    schema across its lifecycle, from a client's initial approval through any
+    later republication or revision of that schema.
+  version: "0.1.0"
+  draft: true
+  author:
+    id: anchor-maintainers
+    name: Anchor Maintainers
+    type: Software Assisted
+  mapping-references:
+    - id: ANCHOR.MCP.TOOLSCHEMA
+      title: MCP Tool Schema Distribution Capability Catalog
+      version: "0.1.0"
+      description: Custom capabilities for MCP tool schema distribution and trust.
+groups:
+  - id: schema-trust
+    title: Schema Trust & Provenance
+    description: >
+      Threats concerning the integrity, authenticity, and canonical history of
+      an MCP tool's schema over its lifecycle, from initial client approval
+      through subsequent updates.
+threats:
+  - id: ANCHOR.MCP.TOOLSCHEMA.THR01
+    title: Rug Pull
+    description: >
+      A tool's schema or behavior silently changes after a client has already
+      approved it, without any re-disclosure to the client or user.
+      Exploitable because most current MCP clients validate a tool's schema
+      once, at first approval, with no mechanism to detect a later,
+      unannounced change.
+    group: schema-trust
+    capabilities:
+      - reference-id: ANCHOR.MCP.TOOLSCHEMA
+        entries:
+          - reference-id: ANCHOR.MCP.TOOLSCHEMA.CAP01
+            remarks: >
+              Exploits the absence of re-disclosure when a previously
+              approved tool's published schema changes.
+  - id: ANCHOR.MCP.TOOLSCHEMA.THR02
+    title: Tool Poisoning
+    description: >
+      A malicious or compromised actor publishes a schema change that
+      impersonates a legitimate update — potentially signed or attributed
+      under a different identity than the tool's original publisher.
+      Exploitable because without a provenance record, clients can't
+      distinguish a legitimate publisher's update from an impersonated one.
+    group: schema-trust
+    capabilities:
+      - reference-id: ANCHOR.MCP.TOOLSCHEMA
+        entries:
+          - reference-id: ANCHOR.MCP.TOOLSCHEMA.CAP01
+            remarks: >
+              Exploits the lack of a provenance record for schema
+              publication, letting an impersonated update masquerade as one
+              from the legitimate publisher.
+  - id: ANCHOR.MCP.TOOLSCHEMA.THR03
+    title: Tool Shadowing
+    description: >
+      Two divergent versions of a tool's schema circulate simultaneously (an
+      undetected fork in history), and clients have no way to determine which
+      is authoritative. Exploitable because without a canonical, ordered
+      history of schema revisions, there's no single source of truth a client
+      can check against.
+    group: schema-trust
+    capabilities:
+      - reference-id: ANCHOR.MCP.TOOLSCHEMA
+        entries:
+          - reference-id: ANCHOR.MCP.TOOLSCHEMA.CAP01
+            remarks: >
+              Exploits the absence of a canonical, ordered revision history,
+              letting two divergent schema versions circulate without a
+              client being able to determine which is authoritative.
