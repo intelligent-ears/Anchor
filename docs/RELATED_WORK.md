@@ -1,4 +1,4 @@
-# Related work: Anchor vs. ETDI
+# Related work: Anchor vs. ETDI, and OpenSSF Model Signing
 
 ETDI (Enhanced Tool Definition Interface) — another proposal in the MCP
 ecosystem for addressing rug-pull-style tool tampering — takes a
@@ -53,3 +53,39 @@ transaction controls. A system could reasonably combine both: ETDI-style
 point-to-point verification as the fast path, backed by a transparency
 log (Anchor's approach, or a similar one) as the audit trail that makes
 silent forking detectable after the fact.
+
+---
+
+# OpenSSF Model Signing (OMS)
+
+OpenSSF's Model Signing spec
+([github.com/ossf/model-signing-spec](https://github.com/ossf/model-signing-spec))
+addresses provenance for AI artifacts from a different angle than ETDI.
+OMS takes a **manifest of related files** — model weights, config,
+tokenizer, dataset — and wraps it as an **in-toto Statement**, which is
+then signed and stored in the **Sigstore Bundle Format**. It also allows
+optional "Embedded Metadata" predicates for carrying additional claims
+alongside the manifest.
+
+Anchor independently arrived at the same underlying mechanism: a
+Sigstore Bundle Format wrapping an in-toto Statement. That convergence is
+useful validation. It suggests this is becoming the standard community
+pattern for AI-supply-chain provenance, rather than a one-off design
+choice specific to Anchor.
+
+The main difference is the shape of the subject being attested:
+
+- **OMS is built for multi-file bundles.** A model is a set of files that
+  must be treated as one unit, so the manifest and its predicate type
+  exist to bind them together.
+- **Anchor's subject is a single tool schema file.** That is a simpler,
+  single-artifact case. Anchor therefore does not adopt OMS's predicate
+  type directly: forcing a manifest-of-files shape onto a single schema
+  attestation would add complexity that doesn't map to what is actually
+  being attested.
+
+**As with ETDI, this is complementary precedent, not a competing or
+redundant effort.** OMS and Anchor sit on the same Sigstore/in-toto
+foundation and differ only in what they attest to — a multi-file model
+bundle versus a single MCP tool schema — so tooling and conventions
+developed around one are likely to carry over to the other.
