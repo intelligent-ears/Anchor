@@ -92,6 +92,41 @@ func VerifyBundle(ctx context.Context, bundlePath, blobPath, predicateType strin
 	return nil
 }
 
+// VerifyBundleNoClaims is VerifyBundle without binding the attestation to a
+// particular blob: it still checks the signature, the Fulcio certificate
+// chain and the Rekor inclusion proof, but doesn't require some local file
+// to hash to the statement's subject. It exists for attestations
+// discovered on Rekor, where Anchor has the signed statement (and so the
+// attested schema hash) but not the schema file it was computed over.
+// Callers must take the subject hash from the verified statement itself.
+func VerifyBundleNoClaims(ctx context.Context, bundlePath, predicateType string) error {
+	cosign, err := cosignPath()
+	if err != nil {
+		return err
+	}
+	empty, err := os.CreateTemp("", "anchor-noclaims-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(empty.Name())
+	empty.Close()
+
+	cmd := exec.CommandContext(ctx, cosign, "verify-blob-attestation",
+		"--bundle", bundlePath,
+		"--certificate-identity-regexp", ".*",
+		"--certificate-oidc-issuer-regexp", ".*",
+		"--type", predicateType,
+		"--check-claims=false",
+		empty.Name(),
+	)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("cosign verify-blob-attestation failed (bundle may be forged, expired, or not Fulcio-issued): %s", stderr.String())
+	}
+	return nil
+}
+
 // Info is what Anchor pulls out of a Sigstore bundle for its own
 // bookkeeping and trust decisions.
 type Info struct {
@@ -139,6 +174,11 @@ func ParseBundle(bundlePath string) (*Info, error) {
 	if err != nil {
 		return nil, err
 	}
+	return ParseBundleBytes(raw)
+}
+
+// ParseBundleBytes is ParseBundle for a bundle already in memory.
+func ParseBundleBytes(raw []byte) (*Info, error) {
 	var b sigstoreBundle
 	if err := json.Unmarshal(raw, &b); err != nil {
 		return nil, fmt.Errorf("parse bundle JSON: %w", err)

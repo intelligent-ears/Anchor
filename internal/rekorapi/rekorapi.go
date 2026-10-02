@@ -12,6 +12,7 @@
 package rekorapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -30,6 +31,27 @@ type Entry struct {
 	IntegratedTime int64  `json:"integratedTime"`
 	LogIndex       int64  `json:"logIndex"`
 	LogID          string `json:"logID"`
+
+	// Attestation carries the DSSE payload (base64) when the Rekor instance
+	// stores attestations, as the public one does for in-toto entries.
+	// Nil if absent.
+	Attestation *struct {
+		Data string `json:"data"`
+	} `json:"attestation"`
+	Verification *struct {
+		SignedEntryTimestamp string          `json:"signedEntryTimestamp"`
+		InclusionProof       *InclusionProof `json:"inclusionProof"`
+	} `json:"verification"`
+}
+
+// InclusionProof is the Merkle inclusion proof Rekor returns with an entry.
+// Hashes are hex-encoded here, as in Rekor's REST API.
+type InclusionProof struct {
+	LogIndex   int64    `json:"logIndex"`
+	RootHash   string   `json:"rootHash"`
+	TreeSize   int64    `json:"treeSize"`
+	Hashes     []string `json:"hashes"`
+	Checkpoint string   `json:"checkpoint"`
 }
 
 // GetByLogIndex fetches the log entry at the given index from the public
@@ -76,4 +98,75 @@ func getOne(ctx context.Context, url string) (*Entry, error) {
 		return &entry, nil
 	}
 	return nil, fmt.Errorf("Rekor returned no entries")
+}
+
+// SearchByEmail asks Rekor's public search index for every entry whose
+// signing certificate (or key) carries the given email identity, returning
+// entry UUIDs. This is one of the few lookups the index supports (see the
+// package comment) — it cannot filter by anything inside an attestation, so
+// callers must fetch and filter the results themselves.
+func SearchByEmail(ctx context.Context, email string) ([]string, error) {
+	reqBody, _ := json.Marshal(map[string]string{"email": email})
+	body, err := post(ctx, DefaultURL+"/api/v1/index/retrieve", reqBody)
+	if err != nil {
+		return nil, err
+	}
+	var uuids []string
+	if err := json.Unmarshal(body, &uuids); err != nil {
+		return nil, fmt.Errorf("parse Rekor index response: %w", err)
+	}
+	return uuids, nil
+}
+
+// maxRetrieveBatch is Rekor's cap on entryUUIDs per retrieve request.
+const maxRetrieveBatch = 10
+
+// GetEntries fetches full log entries for the given UUIDs, batching to
+// stay within Rekor's per-request limit.
+func GetEntries(ctx context.Context, uuids []string) ([]Entry, error) {
+	var out []Entry
+	for start := 0; start < len(uuids); start += maxRetrieveBatch {
+		end := start + maxRetrieveBatch
+		if end > len(uuids) {
+			end = len(uuids)
+		}
+		reqBody, _ := json.Marshal(map[string][]string{"entryUUIDs": uuids[start:end]})
+		body, err := post(ctx, DefaultURL+"/api/v1/log/entries/retrieve", reqBody)
+		if err != nil {
+			return nil, err
+		}
+		var batch []map[string]Entry
+		if err := json.Unmarshal(body, &batch); err != nil {
+			return nil, fmt.Errorf("parse Rekor entries response: %w", err)
+		}
+		for _, m := range batch {
+			for uuid, e := range m {
+				e.UUID = uuid
+				out = append(out, e)
+			}
+		}
+	}
+	return out, nil
+}
+
+func post(ctx context.Context, url string, body []byte) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("contacting Rekor: %w", err)
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Rekor returned %s: %s", resp.Status, string(respBody))
+	}
+	return respBody, nil
 }

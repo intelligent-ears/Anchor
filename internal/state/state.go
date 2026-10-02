@@ -173,6 +173,27 @@ func (s *Store) FindByHash(toolID, schemaHash string) (LogRecord, bool) {
 	return LogRecord{}, false
 }
 
+// SetCanonicalPath records where the canonical schema for an existing
+// record has been cached.
+func (s *Store) SetCanonicalPath(toolID string, logIndex int64, path string) {
+	for i := range s.Log[toolID] {
+		if s.Log[toolID][i].RekorLogIndex == logIndex {
+			s.Log[toolID][i].CanonicalPath = path
+		}
+	}
+}
+
+// HasLogIndex reports whether toolID already has a record for the given
+// Rekor log index, so discovery doesn't re-add entries Anchor already has.
+func (s *Store) HasLogIndex(toolID string, logIndex int64) bool {
+	for _, r := range s.Log[toolID] {
+		if r.RekorLogIndex == logIndex {
+			return true
+		}
+	}
+	return false
+}
+
 // HasRotationBridge reports whether an identity-rotation record exists for
 // toolID authorizing the handoff from -> to.
 func (s *Store) HasRotationBridge(toolID, from, to string) (LogRecord, bool) {

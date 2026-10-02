@@ -1,0 +1,19 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "send_email_rotation_test",
+      "digest": {
+        "sha256": "1fd20b8c34d8399946f4abcda6bad912ef56b1abd5cc5a10dc110aa19ffbcc3e"
+      }
+    }
+  ],
+  "predicateType": "https://anchor.dev/schema-manifest/v1",
+  "predicate": {
+    "toolId": "send_email_rotation_test",
+    "publisherIdentity": "karyasdas2005@gmail.com",
+    "schemaVersion": "1.0.1",
+    "previousSchemaHash": "sha256:43f6fd607b47b2e7ba129205479ffde60f37dc4bd97cfb82521cb0104f131d32",
+    "timestamp": "2026-09-10T20:49:34Z"
+  }
+}

@@ -5,14 +5,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"anchor/internal/canon"
 	"anchor/internal/diff"
+	"anchor/internal/history"
 	"anchor/internal/identity"
-	"anchor/internal/predicate"
 	"anchor/internal/rekorapi"
-	"anchor/internal/signer"
 	"anchor/internal/state"
 )
 
@@ -20,6 +20,7 @@ func runVerify(args []string) error {
 	fs := flag.NewFlagSet("anchor verify", flag.ExitOnError)
 	toolID := fs.String("tool-id", "", "tool identifier to verify against (required)")
 	stateDir := fs.String("state-dir", ".anchor", "local Anchor state directory")
+	bootstrapIdentity := fs.String("bootstrap-from-identity", "", "discover this tool's attestation history on the public Rekor log from signer identity <id> (claimed out-of-band), instead of relying only on local state")
 	fs.Parse(args)
 
 	if fs.NArg() != 1 {
@@ -44,9 +45,21 @@ func runVerify(args []string) error {
 		return fmt.Errorf("opening local state: %w", err)
 	}
 
+	ctx := context.Background()
+
+	if *bootstrapIdentity != "" {
+		if err := bootstrapFromIdentity(ctx, st, *toolID, *bootstrapIdentity); err != nil {
+			return fmt.Errorf("bootstrapping history from Rekor: %w", err)
+		}
+	}
+
 	if _, ok := st.LatestSchemaManifest(*toolID); !ok {
+		if *bootstrapIdentity != "" {
+			fmt.Printf("BLOCKED: no Anchor attestations for tool %q found on Rekor under identity %q (or any identity it rotated to).\n", *toolID, *bootstrapIdentity)
+			return silentExit(1)
+		}
 		fmt.Printf("BLOCKED: no attested revision found for tool %q — nothing to verify against.\n", *toolID)
-		fmt.Println("Run `anchor sign` first, or double-check --tool-id / --state-dir.")
+		fmt.Println("Run `anchor sign` first, pass --bootstrap-from-identity <publisher>, or double-check --tool-id / --state-dir.")
 		return silentExit(1)
 	}
 
@@ -62,9 +75,26 @@ func runVerify(args []string) error {
 		return silentExit(1)
 	}
 
-	ctx := context.Background()
 	if err := reverify(ctx, matched); err != nil {
 		return fmt.Errorf("the matching local attestation record failed re-verification: %w", err)
+	}
+	// A record discovered from Rekor has no cached schema file; the live
+	// schema hashes to the verified subject digest, so cache it for diffs.
+	if matched.CanonicalPath == "" {
+		cp := strings.TrimSuffix(matched.BundlePath, ".bundle.json") + ".canonical.json"
+		if err := os.WriteFile(cp, liveCanonical, 0o644); err == nil {
+			st.SetCanonicalPath(*toolID, matched.RekorLogIndex, cp)
+		}
+	}
+
+	// The signed history must be one strict linear chain.
+	atts, err := collectAttestations(ctx, st, *toolID)
+	if err != nil {
+		return err
+	}
+	if problems := history.CheckLinear(atts); len(problems) > 0 {
+		fmt.Print(forkedReport(*toolID, problems))
+		return silentExit(1)
 	}
 
 	kg, hadKnownGood := st.KnownGood[*toolID]
@@ -127,11 +157,7 @@ func runVerify(args []string) error {
 // This is what stops a compromised/edited local state.json from silently
 // forging trust — the local files are only ever treated as pointers.
 func reverify(ctx context.Context, rec state.LogRecord) error {
-	predType := predicate.SchemaManifestType
-	if rec.Kind == state.KindIdentityRotation {
-		predType = predicate.IdentityRotationType
-	}
-	if err := signer.VerifyBundle(ctx, rec.BundlePath, rec.CanonicalPath, predType); err != nil {
+	if err := verifyRecordCrypto(ctx, rec); err != nil {
 		return err
 	}
 	rctx, cancel := context.WithTimeout(ctx, 20*time.Second)
@@ -151,6 +177,10 @@ func printDiffAgainst(st *state.Store, toolID, oldHash string, newCanonical []by
 	old, ok := st.FindByHash(toolID, oldHash)
 	if !ok {
 		return // shouldn't happen: oldHash came from st.KnownGood, which is only ever set from a logged record
+	}
+	if old.CanonicalPath == "" {
+		fmt.Println("  (previous revision's content isn't cached locally — only its hash is attested — so no diff is available)")
+		return
 	}
 	oldCanonical, err := os.ReadFile(old.CanonicalPath)
 	if err != nil {

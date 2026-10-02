@@ -131,3 +131,57 @@ func BuildIdentityRotationStatement(toolID string, r IdentityRotation, rotationD
 func (s *Statement) Marshal() ([]byte, error) {
 	return json.MarshalIndent(s, "", "  ")
 }
+
+// ParseStatement decodes an in-toto v1 Statement (e.g. the DSSE payload of
+// a Sigstore bundle). It rejects anything that isn't a v1 Statement, but
+// does not interpret the predicate — see the SchemaManifest and
+// IdentityRotation accessors below.
+func ParseStatement(b []byte) (*Statement, error) {
+	var s Statement
+	if err := json.Unmarshal(b, &s); err != nil {
+		return nil, fmt.Errorf("parse in-toto statement: %w", err)
+	}
+	if s.Type != StatementType {
+		return nil, fmt.Errorf("unexpected statement _type %q", s.Type)
+	}
+	return &s, nil
+}
+
+// SubjectHash returns the statement's single subject digest in Anchor's
+// "sha256:<hex>" form.
+func (s *Statement) SubjectHash() (string, error) {
+	if len(s.Subject) != 1 {
+		return "", fmt.Errorf("expected exactly one subject, got %d", len(s.Subject))
+	}
+	hex, ok := s.Subject[0].Digest["sha256"]
+	if !ok || hex == "" {
+		return "", fmt.Errorf("subject has no sha256 digest")
+	}
+	return "sha256:" + hex, nil
+}
+
+// SchemaManifest decodes the predicate as a schema-manifest, if that is
+// what the statement carries.
+func (s *Statement) SchemaManifest() (SchemaManifest, error) {
+	var m SchemaManifest
+	if s.PredicateType != SchemaManifestType {
+		return m, fmt.Errorf("predicateType is %q, not %q", s.PredicateType, SchemaManifestType)
+	}
+	if err := json.Unmarshal(s.Predicate, &m); err != nil {
+		return m, fmt.Errorf("parse schema-manifest predicate: %w", err)
+	}
+	return m, nil
+}
+
+// IdentityRotation decodes the predicate as an identity-rotation, if that
+// is what the statement carries.
+func (s *Statement) IdentityRotation() (IdentityRotation, error) {
+	var r IdentityRotation
+	if s.PredicateType != IdentityRotationType {
+		return r, fmt.Errorf("predicateType is %q, not %q", s.PredicateType, IdentityRotationType)
+	}
+	if err := json.Unmarshal(s.Predicate, &r); err != nil {
+		return r, fmt.Errorf("parse identity-rotation predicate: %w", err)
+	}
+	return r, nil
+}

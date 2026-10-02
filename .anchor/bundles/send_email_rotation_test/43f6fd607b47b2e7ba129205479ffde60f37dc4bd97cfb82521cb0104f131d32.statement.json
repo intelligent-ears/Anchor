@@ -1,0 +1,19 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "send_email_rotation_test",
+      "digest": {
+        "sha256": "43f6fd607b47b2e7ba129205479ffde60f37dc4bd97cfb82521cb0104f131d32"
+      }
+    }
+  ],
+  "predicateType": "https://anchor.dev/schema-manifest/v1",
+  "predicate": {
+    "toolId": "send_email_rotation_test",
+    "publisherIdentity": "24uec247@lnmiit.ac.in",
+    "schemaVersion": "1.0.0",
+    "previousSchemaHash": null,
+    "timestamp": "2026-09-10T20:38:25Z"
+  }
+}

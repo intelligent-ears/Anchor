@@ -1,0 +1,18 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "send_email_rotation_test",
+      "digest": {
+        "sha256": "9645ade9aa84f30a6c0ca8c65a8b88a87b1eadbcd42920787f1d31ac99ee6f4a"
+      }
+    }
+  ],
+  "predicateType": "https://anchor.dev/identity-rotation/v1",
+  "predicate": {
+    "toolId": "send_email_rotation_test",
+    "oldIdentity": "24UEC247@lnmiit.ac.in",
+    "newIdentity": "karyasdas2005@gmail.com",
+    "timestamp": "2026-09-10T20:44:51Z"
+  }
+}

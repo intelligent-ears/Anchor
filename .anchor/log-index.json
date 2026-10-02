@@ -1,0 +1,41 @@
+{
+  "send_email_rotation_test": [
+    {
+      "kind": "schema-manifest",
+      "toolId": "send_email_rotation_test",
+      "rekorUuid": "108e9186e8c5677a9a363143a8b98589a11d2cb1cbd6d7d689d81217e819015e29e063ada4d58dff",
+      "rekorLogIndex": 2787090923,
+      "timestamp": "2026-09-10T20:38:25Z",
+      "publisherIdentity": "24UEC247@lnmiit.ac.in",
+      "oidcIssuer": "https://accounts.google.com",
+      "schemaHash": "sha256:43f6fd607b47b2e7ba129205479ffde60f37dc4bd97cfb82521cb0104f131d32",
+      "schemaVersion": "1.0.0",
+      "bundlePath": ".anchor/bundles/send_email_rotation_test/43f6fd607b47b2e7ba129205479ffde60f37dc4bd97cfb82521cb0104f131d32.bundle.json",
+      "canonicalPath": ".anchor/bundles/send_email_rotation_test/43f6fd607b47b2e7ba129205479ffde60f37dc4bd97cfb82521cb0104f131d32.canonical.json"
+    },
+    {
+      "kind": "identity-rotation",
+      "toolId": "send_email_rotation_test",
+      "rekorUuid": "108e9186e8c5677aed055d5943bd4e372bdff4064733cd72b50b529c5a3109f05badd864a00e0314",
+      "rekorLogIndex": 2787173140,
+      "timestamp": "2026-09-10T20:44:51Z",
+      "oldIdentity": "24UEC247@lnmiit.ac.in",
+      "newIdentity": "karyasdas2005@gmail.com",
+      "bundlePath": ".anchor/bundles/send_email_rotation_test/rotation-9645ade9aa84f30a6c0ca8c65a8b88a87b1eadbcd42920787f1d31ac99ee6f4a.bundle.json",
+      "canonicalPath": ".anchor/bundles/send_email_rotation_test/rotation-9645ade9aa84f30a6c0ca8c65a8b88a87b1eadbcd42920787f1d31ac99ee6f4a.canonical.json"
+    },
+    {
+      "kind": "schema-manifest",
+      "toolId": "send_email_rotation_test",
+      "rekorUuid": "108e9186e8c5677a1c0200b5fa72c4342aa6c08c19470357e9d50ed7e5b3308b93bc29cf4db3fc3a",
+      "rekorLogIndex": 2787179932,
+      "timestamp": "2026-09-10T20:49:34Z",
+      "publisherIdentity": "karyasdas2005@gmail.com",
+      "oidcIssuer": "https://accounts.google.com",
+      "schemaHash": "sha256:1fd20b8c34d8399946f4abcda6bad912ef56b1abd5cc5a10dc110aa19ffbcc3e",
+      "schemaVersion": "1.0.1",
+      "bundlePath": ".anchor/bundles/send_email_rotation_test/1fd20b8c34d8399946f4abcda6bad912ef56b1abd5cc5a10dc110aa19ffbcc3e.bundle.json",
+      "canonicalPath": ".anchor/bundles/send_email_rotation_test/1fd20b8c34d8399946f4abcda6bad912ef56b1abd5cc5a10dc110aa19ffbcc3e.canonical.json"
+    }
+  ]
+}

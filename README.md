@@ -90,6 +90,12 @@ infrastructure (not mocked):
   index <n>)` line, rather than flagging the identity change as
   suspicious. This was the last unverified piece of Anchor — every
   documented code path has now been exercised live.
+- ✅ Strict-linear `previousSchemaHash` enforcement: unit-tested (fork,
+  gap, ordering, duplicates, rollback), and run live against this
+  project's real `send_email_rotation_test` history, where it passes the
+  genuine two-revision chain. The `FORKED` verdict itself hasn't been
+  produced from real signed forks (that needs new, permanent Rekor
+  entries).
 - ⚠️ The "FLAGGED: publisher identity changed without an attested
   rotation" path (identity switch with *no* rotation record) is exercised
   by construction whenever the rotation path above hasn't been run first,
@@ -290,16 +296,23 @@ ETDI.
   instances, or offline/air-gapped verification.
 - The local `log-index.json` grows unbounded; a real client would want
   pruning/pagination for tools with long histories.
-- `previousSchemaHash` chaining is recorded but not currently enforced as
-  a strict linear history during `verify` — a gap worth closing before
-  this goes beyond prototype stage.
-- There is no way for a second Anchor client to learn about attestations
-  it didn't itself sign — the public Rekor API has no "search by toolId"
-  endpoint, so a client's `log-index.json` only ever grows via that
-  client's own `sign`/`rotate-identity` calls (see the note in
-  [Trying identity rotation](#trying-identity-rotation)). A real
-  multi-client deployment would need some out-of-band way to distribute
-  these pointers.
+- **Fixed:** `verify` now enforces
+  `previousSchemaHash` as a strict linear history. If two different
+  revisions claim the same predecessor, or a revision names a predecessor
+  that isn't in the retrievable history, it prints `FORKED: divergent
+  schema history detected` and exits non-zero. Still open: a fork is only
+  visible if both branches are in the client's local index ; and the check re-verifies
+  every cached revision with cosign, which is slow for long histories.
+- **Still open, blocked by Rekor:** `anchor verify --bootstrap-from-identity
+  <publisher>` searches Rekor by signer identity, but live testing showed
+  public Rekor does not return the payload of DSSE entries (only a
+  payload hash), so Anchor's predicate — `toolId`, `previousSchemaHash` —
+  can't be read back from Rekor. The flag currently fails with an
+  explanatory error instead of reconstructing history. Rekor *can* look
+  up entries by schema hash (the subject digest is indexed) and by signer
+  identity, so it can confirm "this hash was attested by this identity",
+  but not chain or filter by tool. Closing this needs the signer's bundles
+  distributed out-of-band (e.g. published beside the schema).
 - No security review has been done. Anchor's own predicate types
   (`https://anchor.dev/schema-manifest/v1`,
   `https://anchor.dev/identity-rotation/v1`) are project-local
