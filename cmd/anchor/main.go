@@ -52,10 +52,16 @@ func usage() {
 Usage (flags must come before the trailing file argument — Go's flag
 package stops parsing flags at the first non-flag token):
   anchor sign --tool-id <id> --publisher-identity <id> --schema-version <v> [--state-dir .anchor] <schema-file>
-  anchor verify --tool-id <id> [--state-dir .anchor] <schema-file>
+  anchor verify --tool-id <id> [--state-dir .anchor] [--bootstrap-from-identity <id>] <schema-file>
   anchor rotate-identity --tool-id <id> --new-identity <id> [--reason <text>] [--state-dir .anchor]
 
 Each command's -h flag prints its own options.
+
+--bootstrap-from-identity rebuilds a tool's history from the public Rekor
+log, for a client with no local state. The identity must come from you or
+your own out-of-band config, never from the schema being verified: an
+attacker who picks the identity you trust can show you a flawless history
+of their own. Run "anchor verify -h" for the full warning.
 `)
 }
 

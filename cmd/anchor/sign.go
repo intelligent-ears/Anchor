@@ -17,6 +17,30 @@ import (
 	"anchor/internal/state"
 )
 
+// previousSchemaHashFor returns the parent a new revision of toolID should
+// name: the schemaHash of the last schema-manifest this client logged for
+// the tool, in Rekor log order, or nil for a tool's first revision.
+//
+// Log order, not timestamp order, because that is the order `verify` reads
+// the chain back in (internal/history checks linearity by Rekor log
+// index). Choosing the parent any other way could make a correctly signed
+// chain look out of order to a verifier.
+//
+// Note what this means for a publisher: the chain is only as complete as
+// the state dir doing the signing. Signing from a state dir that has not
+// seen the tool's earlier revisions produces a revision claiming to be the
+// first, which to a verifier holding the full history is a fork. A
+// publisher with more than one machine needs the same state, or needs to
+// bootstrap it (`anchor verify --bootstrap-from-identity`) before signing.
+func previousSchemaHashFor(st *state.Store, toolID string) *string {
+	latest, ok := st.LatestSchemaManifest(toolID)
+	if !ok {
+		return nil
+	}
+	h := latest.SchemaHash
+	return &h
+}
+
 func runSign(args []string) error {
 	fs := flag.NewFlagSet("anchor sign", flag.ExitOnError)
 	toolID := fs.String("tool-id", "", "tool identifier this schema belongs to (required)")
@@ -47,11 +71,7 @@ func runSign(args []string) error {
 		return fmt.Errorf("opening local state: %w", err)
 	}
 
-	var previousHash *string
-	if latest, ok := st.LatestSchemaManifest(*toolID); ok {
-		h := latest.SchemaHash
-		previousHash = &h
-	}
+	previousHash := previousSchemaHashFor(st, *toolID)
 
 	timestamp := time.Now().UTC().Format(time.RFC3339)
 	manifest := predicate.SchemaManifest{

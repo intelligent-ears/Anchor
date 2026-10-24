@@ -1,0 +1,17 @@
+{
+  "name": "detects a gap rebuilt from Rekor alone",
+  "note": "A revision naming a parent that is nowhere in what Rekor returned for this identity. Either a revision was published under another identity, or one is being withheld.",
+  "toolId": "send_email",
+  "bootstrapIdentity": "pub@example.com",
+  "entries": [
+    {"logIndex": 301, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:a001", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"logIndex": 302, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:c003", "previousSchemaHash": "sha256:f0f0", "schemaVersion": "1.0.2"}
+  ],
+  "want": {
+    "manifests": 2,
+    "rotations": 0,
+    "identities": ["pub@example.com"],
+    "problems": ["gap"],
+    "chain": ["sha256:a001", "sha256:c003"]
+  }
+}

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"anchor/internal/bootstrap"
 	"anchor/internal/canon"
 	"anchor/internal/diff"
 	"anchor/internal/history"
@@ -16,11 +17,26 @@ import (
 	"anchor/internal/state"
 )
 
+// bootstrapHelp is the --bootstrap-from-identity flag's help text. The
+// trust rule is in it because the flag is unsafe without it: an identity
+// taken from the schema being verified lets the publisher of that schema
+// choose who you trust.
+const bootstrapHelp = "rebuild this tool's attestation history from the public Rekor log, " +
+	"searching from signer identity <id>, instead of relying on local state. " +
+	"The identity MUST come from you or from out-of-band config you control — " +
+	"NEVER from the schema being verified, or an attacker could simply name their own " +
+	"identity and present a perfectly signed history of their own. " +
+	"This is trust-on-first-use: it proves the history Rekor holds for that identity, " +
+	"not that the identity is the tool's rightful publisher."
+
 func runVerify(args []string) error {
 	fs := flag.NewFlagSet("anchor verify", flag.ExitOnError)
 	toolID := fs.String("tool-id", "", "tool identifier to verify against (required)")
 	stateDir := fs.String("state-dir", ".anchor", "local Anchor state directory")
-	bootstrapIdentity := fs.String("bootstrap-from-identity", "", "discover this tool's attestation history on the public Rekor log from signer identity <id> (claimed out-of-band), instead of relying only on local state")
+	bootstrapIdentity := fs.String("bootstrap-from-identity", "", bootstrapHelp)
+	maxBootstrapEntries := fs.Int("max-bootstrap-entries", bootstrap.DefaultMaxEntries,
+		"with --bootstrap-from-identity, the most Rekor entries one identity may have before the scan refuses. "+
+			"Anchor will not report on a partial scan: a history missing revisions can look perfectly linear")
 	fs.Parse(args)
 
 	if fs.NArg() != 1 {
@@ -48,7 +64,7 @@ func runVerify(args []string) error {
 	ctx := context.Background()
 
 	if *bootstrapIdentity != "" {
-		if err := bootstrapFromIdentity(ctx, st, *toolID, *bootstrapIdentity); err != nil {
+		if err := runBootstrap(ctx, st, *toolID, *bootstrapIdentity, *maxBootstrapEntries); err != nil {
 			return fmt.Errorf("bootstrapping history from Rekor: %w", err)
 		}
 	}
@@ -87,24 +103,36 @@ func runVerify(args []string) error {
 		}
 	}
 
-	// The signed history must be one strict linear chain.
+	kg, hadKnownGood := st.KnownGood[*toolID]
+
+	// The signed history must be one strict linear chain. Checking it needs
+	// a root identity: whom does this client consider the publisher? Every
+	// identity joined to that root by an attested rotation counts as the
+	// same publisher, so a legitimate handoff is a link in the chain rather
+	// than a second line of history.
 	atts, err := collectAttestations(ctx, st, *toolID)
 	if err != nil {
 		return err
 	}
-	if problems := history.CheckLinear(atts); len(problems) > 0 {
-		fmt.Print(forkedReport(*toolID, problems))
+	lineage := publisherLineage(*bootstrapIdentity, kg, hadKnownGood, atts)
+	rep := history.Check(atts, lineage)
+	if !rep.OK() {
+		fmt.Print(forkedReport(*toolID, rep, lineage))
 		return silentExit(1)
 	}
-
-	kg, hadKnownGood := st.KnownGood[*toolID]
 
 	// First time verifying this tool locally: nothing to compare identity
 	// against yet, so trust-on-first-use against whatever is validly
 	// attested.
 	if !hadKnownGood {
 		fmt.Println("OK: schema matches latest attested revision.")
-		fmt.Println("  (no prior local record for this tool — trusting this attested revision on first use)")
+		if *bootstrapIdentity != "" {
+			fmt.Printf("  (history rebuilt from the public Rekor log under identity %s, with no prior local state —\n", *bootstrapIdentity)
+			fmt.Println("   trust-on-first-use: the chain is proven, the choice of publisher identity is yours)")
+		} else {
+			fmt.Println("  (no prior local record for this tool — trusting this attested revision on first use)")
+		}
+		printHistorySummary(rep)
 		printSigner(matched)
 		saveKnownGood(st, *toolID, matched)
 		return nil
@@ -117,6 +145,7 @@ func runVerify(args []string) error {
 			fmt.Println("OK: routine update from known publisher.")
 			printDiffAgainst(st, *toolID, kg.SchemaHash, liveCanonical)
 		}
+		printHistorySummary(rep)
 		printSigner(matched)
 		saveKnownGood(st, *toolID, matched)
 		return nil
@@ -135,6 +164,7 @@ func runVerify(args []string) error {
 		if liveHash != kg.SchemaHash {
 			printDiffAgainst(st, *toolID, kg.SchemaHash, liveCanonical)
 		}
+		printHistorySummary(rep)
 		printSigner(matched)
 		saveKnownGood(st, *toolID, matched)
 		return nil
@@ -149,6 +179,49 @@ func runVerify(args []string) error {
 	fmt.Println("  would look exactly like this. If the rotation is legitimate, the OLD identity")
 	fmt.Println("  must run `anchor rotate-identity` to authorize it.")
 	return silentExit(1)
+}
+
+// publisherLineage decides whose history is being checked.
+//
+// The root has to come from somewhere the publisher of the schema cannot
+// choose. There are two such places, in order of preference:
+//
+//  1. the identity the user passed to --bootstrap-from-identity, which by
+//     the flag's contract came from the user or their own config;
+//  2. the identity this client previously approved and recorded locally,
+//     which is its own earlier decision.
+//
+// With neither — a client whose local index exists but has no known-good
+// entry yet — there is no declared publisher to root a lineage at, so
+// every signer in that index counts (history.AnySigner). That is the
+// honest reading: the index is this client's own record of what it has
+// seen, and a second line of history inside it is still a fork.
+func publisherLineage(bootstrapIdentity string, kg state.LastKnownGood, hadKnownGood bool, atts []history.Attestation) history.Lineage {
+	switch {
+	case bootstrapIdentity != "":
+		return history.NewLineage(bootstrapIdentity, atts)
+	case hadKnownGood && kg.PublisherIdentity != "":
+		return history.NewLineage(kg.PublisherIdentity, atts)
+	}
+	return history.AnySigner()
+}
+
+// printHistorySummary states what the linearity check actually covered, so
+// an OK verdict says how much history it is an OK over.
+func printHistorySummary(rep history.Report) {
+	n := len(rep.Chain)
+	switch n {
+	case 0:
+		fmt.Println("  History:     no attested revisions in this publisher's chain")
+	case 1:
+		fmt.Println("  History:     1 attested revision (nothing to chain yet)")
+	default:
+		fmt.Printf("  History:     %d attested revisions, one linear chain (previousSchemaHash verified end to end)\n", n)
+	}
+	if len(rep.OffLineage) > 0 {
+		fmt.Printf("  Note:        %d attestation(s) for this tool were signed by identities outside this\n", len(rep.OffLineage))
+		fmt.Println("               publisher's lineage and were not treated as part of its history.")
+	}
 }
 
 // reverify re-checks a cached local record cryptographically against the

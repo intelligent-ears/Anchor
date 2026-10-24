@@ -1,0 +1,15 @@
+{
+  "name": "rotations with no schema revisions",
+  "note": "A publisher that rotated identity before ever signing a schema. The lineage grows; the schema chain stays empty.",
+  "toolId": "send_email",
+  "root": "old@example.com",
+  "attestations": [
+    {"kind": "identity-rotation", "signer": "old@example.com", "rekorLogIndex": 20, "rekorUuid": "uuid-20", "oldIdentity": "old@example.com", "newIdentity": "new@example.com"}
+  ],
+  "want": {
+    "problems": [],
+    "chain": [],
+    "offLineage": [],
+    "lineage": ["old@example.com", "new@example.com"]
+  }
+}

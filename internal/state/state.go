@@ -138,20 +138,22 @@ func (s *Store) AppendLog(rec LogRecord) {
 	s.Log[rec.ToolID] = append(s.Log[rec.ToolID], rec)
 }
 
-// SchemaManifests returns every schema-manifest record for toolID, sorted
-// oldest first.
+// SchemaManifests returns every schema-manifest record for toolID, in
+// Rekor log order, oldest first.
 func (s *Store) SchemaManifests(toolID string) []LogRecord {
-	return sortedByTime(filterKind(s.Log[toolID], KindSchemaManifest))
+	return sortedByLogIndex(filterKind(s.Log[toolID], KindSchemaManifest))
 }
 
-// Rotations returns every identity-rotation record for toolID, sorted
-// oldest first.
+// Rotations returns every identity-rotation record for toolID, in Rekor
+// log order, oldest first.
 func (s *Store) Rotations(toolID string) []LogRecord {
-	return sortedByTime(filterKind(s.Log[toolID], KindIdentityRotation))
+	return sortedByLogIndex(filterKind(s.Log[toolID], KindIdentityRotation))
 }
 
-// LatestSchemaManifest returns the most recently signed schema-manifest
-// record for toolID, if any.
+// LatestSchemaManifest returns the last schema-manifest record for toolID
+// in Rekor log order, if any. This is what `anchor sign` names as the
+// parent of a new revision, so a publisher's chain is built in the same
+// order `verify` later reads it in.
 func (s *Store) LatestSchemaManifest(toolID string) (LogRecord, bool) {
 	recs := s.SchemaManifests(toolID)
 	if len(recs) == 0 {
@@ -215,7 +217,13 @@ func filterKind(recs []LogRecord, kind string) []LogRecord {
 	return out
 }
 
-func sortedByTime(recs []LogRecord) []LogRecord {
-	sort.SliceStable(recs, func(i, j int) bool { return recs[i].Timestamp < recs[j].Timestamp })
+// sortedByLogIndex orders records the way Rekor did, which is the only
+// ordering the whole system agrees on. A record's Timestamp is the
+// publisher's own claim about when it signed and can say anything;
+// internal/history checks linearity in log-index order, so the parent
+// `sign` picks has to be chosen in that same order or a correctly-signed
+// chain could read as out-of-order on the way back in.
+func sortedByLogIndex(recs []LogRecord) []LogRecord {
+	sort.SliceStable(recs, func(i, j int) bool { return recs[i].RekorLogIndex < recs[j].RekorLogIndex })
 	return recs
 }

@@ -1,0 +1,17 @@
+{
+  "name": "attested rotation is a valid link, not a fork",
+  "note": "The publisher handed off from old@ to new@, signing the rotation with old@. The revision new@ then published continues old@'s chain. Both identities are one publisher, so the chain stays linear.",
+  "toolId": "send_email",
+  "root": "old@example.com",
+  "attestations": [
+    {"kind": "schema-manifest", "signer": "old@example.com", "rekorLogIndex": 10, "rekorUuid": "uuid-10", "schemaHash": "sha256:aaaa", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"kind": "identity-rotation", "signer": "old@example.com", "rekorLogIndex": 20, "rekorUuid": "uuid-20", "oldIdentity": "old@example.com", "newIdentity": "new@example.com"},
+    {"kind": "schema-manifest", "signer": "new@example.com", "rekorLogIndex": 30, "rekorUuid": "uuid-30", "schemaHash": "sha256:bbbb", "previousSchemaHash": "sha256:aaaa", "schemaVersion": "1.0.1"}
+  ],
+  "want": {
+    "problems": [],
+    "chain": ["sha256:aaaa", "sha256:bbbb"],
+    "offLineage": [],
+    "lineage": ["old@example.com", "new@example.com"]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "empty history is not a problem",
+  "note": "Nothing to check is not the same as something wrong. verify reports 'nothing attested' separately, before any linearity check.",
+  "toolId": "send_email",
+  "root": "pub@example.com",
+  "attestations": [],
+  "want": {
+    "problems": [],
+    "chain": [],
+    "offLineage": [],
+    "lineage": ["pub@example.com"]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "follows an attested rotation to the successor identity",
+  "note": "Rekor cannot be searched by toolId, so the post-handoff revisions are only reachable by reading the rotation attestation and searching again for the identity it names. The rebuilt chain spans both identities and stays linear.",
+  "toolId": "send_email",
+  "bootstrapIdentity": "old@example.com",
+  "entries": [
+    {"logIndex": 401, "signer": "old@example.com", "kind": "schema-manifest", "schemaHash": "sha256:a001", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"logIndex": 402, "signer": "old@example.com", "kind": "identity-rotation", "oldIdentity": "old@example.com", "newIdentity": "new@example.com"},
+    {"logIndex": 403, "signer": "new@example.com", "kind": "schema-manifest", "schemaHash": "sha256:b002", "previousSchemaHash": "sha256:a001", "schemaVersion": "1.0.1"}
+  ],
+  "want": {
+    "manifests": 2,
+    "rotations": 1,
+    "identities": ["old@example.com", "new@example.com"],
+    "problems": [],
+    "chain": ["sha256:a001", "sha256:b002"]
+  }
+}

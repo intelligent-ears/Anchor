@@ -1,0 +1,16 @@
+{
+  "name": "a revision logged before its claimed parent",
+  "note": "bbbb names aaaa as its parent but was logged first, so it cannot have followed it. No fork and no gap — the set of hashes is consistent, the order is not.",
+  "toolId": "send_email",
+  "root": "pub@example.com",
+  "attestations": [
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 10, "rekorUuid": "uuid-10", "schemaHash": "sha256:bbbb", "previousSchemaHash": "sha256:aaaa", "schemaVersion": "1.0.1"},
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 20, "rekorUuid": "uuid-20", "schemaHash": "sha256:aaaa", "previousSchemaHash": null, "schemaVersion": "1.0.0"}
+  ],
+  "want": {
+    "problems": ["order"],
+    "chain": ["sha256:bbbb", "sha256:aaaa"],
+    "offLineage": [],
+    "lineage": ["pub@example.com"]
+  }
+}

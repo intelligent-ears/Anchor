@@ -1,0 +1,18 @@
+{
+  "name": "detects a fork rebuilt from Rekor alone",
+  "note": "The publisher signed two different successors to sha256:a001. Both are on the public log under their own identity, so bootstrap finds both — this is the case local state could miss if a client only ever recorded one branch.",
+  "toolId": "send_email",
+  "bootstrapIdentity": "pub@example.com",
+  "entries": [
+    {"logIndex": 201, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:a001", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"logIndex": 202, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:b002", "previousSchemaHash": "sha256:a001", "schemaVersion": "1.0.1"},
+    {"logIndex": 203, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:ed11", "previousSchemaHash": "sha256:a001", "schemaVersion": "1.0.1"}
+  ],
+  "want": {
+    "manifests": 3,
+    "rotations": 0,
+    "identities": ["pub@example.com"],
+    "problems": ["fork"],
+    "chain": ["sha256:a001", "sha256:b002", "sha256:ed11"]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "gap: only part of the history was retrieved",
+  "note": "A single revision that claims a predecessor, with nothing before it. A truncated scan looks exactly like this, which is why bootstrap refuses to truncate.",
+  "toolId": "send_email",
+  "root": "pub@example.com",
+  "attestations": [
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 20, "rekorUuid": "uuid-20", "schemaHash": "sha256:bbbb", "previousSchemaHash": "sha256:aaaa", "schemaVersion": "1.0.1"}
+  ],
+  "want": {
+    "problems": ["gap"],
+    "chain": ["sha256:bbbb"],
+    "offLineage": [],
+    "lineage": ["pub@example.com"]
+  }
+}

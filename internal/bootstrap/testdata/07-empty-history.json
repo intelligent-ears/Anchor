@@ -1,0 +1,14 @@
+{
+  "name": "identity has no Anchor entries at all",
+  "note": "A real identity with nothing published for this tool. Not an error here — verify turns an empty result into its own 'nothing attested under that identity' verdict.",
+  "toolId": "send_email",
+  "bootstrapIdentity": "stranger@example.com",
+  "entries": [],
+  "want": {
+    "manifests": 0,
+    "rotations": 0,
+    "identities": ["stranger@example.com"],
+    "problems": [],
+    "chain": []
+  }
+}
