@@ -1,0 +1,17 @@
+{
+  "name": "rebuilds a linear chain with no local state",
+  "note": "The base case for Part 2: a second client knows only the publisher's identity, pulls that identity's Rekor entries, and recovers the whole chain. Schema hashes are abbreviated for readability; nothing checks their length.",
+  "toolId": "send_email",
+  "bootstrapIdentity": "pub@example.com",
+  "entries": [
+    {"logIndex": 101, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:a001", "previousSchemaHash": null, "schemaVersion": "1.0.0", "timestamp": "2026-01-01T00:00:00Z"},
+    {"logIndex": 102, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:b002", "previousSchemaHash": "sha256:a001", "schemaVersion": "1.0.1", "timestamp": "2026-01-02T00:00:00Z"}
+  ],
+  "want": {
+    "manifests": 2,
+    "rotations": 0,
+    "identities": ["pub@example.com"],
+    "problems": [],
+    "chain": ["sha256:a001", "sha256:b002"]
+  }
+}

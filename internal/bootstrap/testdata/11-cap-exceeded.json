@@ -1,0 +1,16 @@
+{
+  "name": "refuses rather than scan part of a large identity",
+  "note": "maxEntries is 2 and the identity has 3 entries. Scanning a prefix would produce a history that looks clean but is missing revisions, so Discover refuses and says so. The caller is told to raise the cap, not given a partial answer.",
+  "toolId": "send_email",
+  "bootstrapIdentity": "busy@example.com",
+  "maxEntries": 2,
+  "entries": [
+    {"logIndex": 1101, "signer": "busy@example.com", "kind": "schema-manifest", "schemaHash": "sha256:a001", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"logIndex": 1102, "signer": "busy@example.com", "kind": "schema-manifest", "schemaHash": "sha256:b002", "previousSchemaHash": "sha256:a001", "schemaVersion": "1.0.1"},
+    {"logIndex": 1103, "signer": "busy@example.com", "kind": "schema-manifest", "schemaHash": "sha256:c003", "previousSchemaHash": "sha256:b002", "schemaVersion": "1.0.2"}
+  ],
+  "want": {
+    "errorKind": "cap",
+    "error": "more than the 2 this scan is allowed to examine"
+  }
+}

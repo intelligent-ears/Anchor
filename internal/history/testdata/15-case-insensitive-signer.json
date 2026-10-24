@@ -1,0 +1,16 @@
+{
+  "name": "signer case differences do not split the lineage",
+  "note": "Google's OIDC issuer returns an institutional address in its own letter case. An email-shaped identity that differs only in case is the same publisher (internal/identity), so its revisions stay in the chain.",
+  "toolId": "send_email",
+  "root": "pub@example.com",
+  "attestations": [
+    {"kind": "schema-manifest", "signer": "PUB@Example.com", "rekorLogIndex": 10, "rekorUuid": "uuid-10", "schemaHash": "sha256:aaaa", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 20, "rekorUuid": "uuid-20", "schemaHash": "sha256:bbbb", "previousSchemaHash": "sha256:aaaa", "schemaVersion": "1.0.1"}
+  ],
+  "want": {
+    "problems": [],
+    "chain": ["sha256:aaaa", "sha256:bbbb"],
+    "offLineage": [],
+    "lineage": ["pub@example.com"]
+  }
+}

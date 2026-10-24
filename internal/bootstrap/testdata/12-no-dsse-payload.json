@@ -1,0 +1,14 @@
+{
+  "name": "public Rekor withholding every DSSE payload",
+  "note": "This is what the live public instance actually does for cosign's \"dsse\" entry kind: it stores a payload hash, not the payload. With no payload there is no predicate, so no toolId and no previousSchemaHash — nothing to rebuild. Discover says exactly that instead of reporting an empty history as if the publisher had never signed anything.",
+  "toolId": "send_email",
+  "bootstrapIdentity": "pub@example.com",
+  "entries": [
+    {"logIndex": 1201, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:a001", "previousSchemaHash": null, "schemaVersion": "1.0.0", "noPayload": true},
+    {"logIndex": 1202, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:b002", "previousSchemaHash": "sha256:a001", "schemaVersion": "1.0.1", "noPayload": true}
+  ],
+  "want": {
+    "errorKind": "no-payload",
+    "error": "cannot be recovered from Rekor alone"
+  }
+}

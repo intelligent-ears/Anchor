@@ -67,9 +67,7 @@ func entryFromBundle(t *testing.T, path string) rekorapi.Entry {
 	var e rekorapi.Entry
 	e.Body = tl.CanonicalizedBody
 	e.LogID = toHex(tl.LogID.KeyID)
-	e.Attestation = &struct {
-		Data string `json:"data"`
-	}{Data: b.DsseEnvelope.Payload}
+	e.Attestation = &rekorapi.Attestation{Data: b.DsseEnvelope.Payload}
 	ip := &rekorapi.InclusionProof{RootHash: toHex(tl.InclusionProof.RootHash), Checkpoint: tl.InclusionProof.Checkpoint.Envelope}
 	for _, h := range tl.InclusionProof.Hashes {
 		ip.Hashes = append(ip.Hashes, toHex(h))
@@ -78,10 +76,10 @@ func entryFromBundle(t *testing.T, path string) rekorapi.Entry {
 	json.Unmarshal([]byte(tl.IntegratedTime), &e.IntegratedTime)
 	json.Unmarshal([]byte(tl.InclusionProof.LogIndex), &ip.LogIndex)
 	json.Unmarshal([]byte(tl.InclusionProof.TreeSize), &ip.TreeSize)
-	e.Verification = &struct {
-		SignedEntryTimestamp string                   `json:"signedEntryTimestamp"`
-		InclusionProof       *rekorapi.InclusionProof `json:"inclusionProof"`
-	}{SignedEntryTimestamp: tl.InclusionPromise.SignedEntryTimestamp, InclusionProof: ip}
+	e.Verification = &rekorapi.Verification{
+		SignedEntryTimestamp: tl.InclusionPromise.SignedEntryTimestamp,
+		InclusionProof:       ip,
+	}
 	return e
 }
 

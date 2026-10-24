@@ -1,0 +1,20 @@
+{
+  "name": "some entries carry payloads, some do not",
+  "note": "A mixed log: one entry Rekor withheld the payload for, two it returned. Discover keeps going (it only refuses when nothing has a payload) and the missing revision shows up honestly as a gap rather than being silently skipped over.",
+  "toolId": "send_email",
+  "bootstrapIdentity": "pub@example.com",
+  "entries": [
+    {"logIndex": 1301, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:a001", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"logIndex": 1302, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:b002", "previousSchemaHash": "sha256:a001", "schemaVersion": "1.0.1", "noPayload": true},
+    {"logIndex": 1303, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:c003", "previousSchemaHash": "sha256:b002", "schemaVersion": "1.0.2"}
+  ],
+  "want": {
+    "manifests": 2,
+    "rotations": 0,
+    "notAnchor": 1,
+    "noPayload": 1,
+    "identities": ["pub@example.com"],
+    "problems": ["gap"],
+    "chain": ["sha256:a001", "sha256:c003"]
+  }
+}

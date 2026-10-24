@@ -1,0 +1,18 @@
+{
+  "name": "rejects an entry whose certificate names another signer",
+  "note": "The entry is indexed under pub@ but its certificate says attacker@. Anchor believes the certificate, not the index, so the entry is dropped rather than credited to the publisher.",
+  "toolId": "send_email",
+  "bootstrapIdentity": "pub@example.com",
+  "entries": [
+    {"logIndex": 1001, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:a001", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"logIndex": 1002, "signer": "attacker@evil.example", "indexedUnder": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:ed11", "previousSchemaHash": "sha256:a001", "schemaVersion": "1.0.1"}
+  ],
+  "want": {
+    "manifests": 1,
+    "rotations": 0,
+    "notAnchor": 1,
+    "identities": ["pub@example.com"],
+    "problems": [],
+    "chain": ["sha256:a001"]
+  }
+}

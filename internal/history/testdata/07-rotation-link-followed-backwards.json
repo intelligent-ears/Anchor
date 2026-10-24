@@ -1,0 +1,17 @@
+{
+  "name": "rotation link resolves from the new identity too",
+  "note": "Same history as 06, but the client's root is the NEW identity — the case for a client that bootstrapped after the handoff. The pre-rotation revision must still count as part of the chain, or it would read as a gap.",
+  "toolId": "send_email",
+  "root": "new@example.com",
+  "attestations": [
+    {"kind": "schema-manifest", "signer": "old@example.com", "rekorLogIndex": 10, "rekorUuid": "uuid-10", "schemaHash": "sha256:aaaa", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"kind": "identity-rotation", "signer": "old@example.com", "rekorLogIndex": 20, "rekorUuid": "uuid-20", "oldIdentity": "old@example.com", "newIdentity": "new@example.com"},
+    {"kind": "schema-manifest", "signer": "new@example.com", "rekorLogIndex": 30, "rekorUuid": "uuid-30", "schemaHash": "sha256:bbbb", "previousSchemaHash": "sha256:aaaa", "schemaVersion": "1.0.1"}
+  ],
+  "want": {
+    "problems": [],
+    "chain": ["sha256:aaaa", "sha256:bbbb"],
+    "offLineage": [],
+    "lineage": ["new@example.com", "old@example.com"]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "rejects a rotation the claimed old identity did not sign",
+  "note": "The rotation says it hands off from new@ to other@, but the certificate says old@ signed it. Anchor refuses to reinterpret that as old@'s own handoff — a rotation is a statement by the identity named in oldIdentity, and nobody can authorize a handoff on a third party's behalf. Dropping it also closes the graft: an attacker who could publish a rotation naming themselves as the successor of a publisher they do not control would otherwise be chained into that publisher's lineage.",
+  "toolId": "send_email",
+  "bootstrapIdentity": "old@example.com",
+  "entries": [
+    {"logIndex": 501, "signer": "old@example.com", "kind": "schema-manifest", "schemaHash": "sha256:a001", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"logIndex": 502, "signer": "old@example.com", "kind": "identity-rotation", "oldIdentity": "new@example.com", "newIdentity": "other@example.com"}
+  ],
+  "want": {
+    "manifests": 1,
+    "rotations": 0,
+    "notAnchor": 1,
+    "identities": ["old@example.com"],
+    "problems": [],
+    "chain": ["sha256:a001"]
+  }
+}

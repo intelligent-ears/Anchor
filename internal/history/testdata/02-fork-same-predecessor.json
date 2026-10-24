@@ -1,0 +1,18 @@
+{
+  "name": "fork: two revisions claim the same predecessor",
+  "note": "The schema history fork. Both revisions are validly signed by the publisher, and both claim to follow sha256:aaaa. Provenance cannot say which is the real successor, only that the publisher equivocated.",
+  "toolId": "send_email",
+  "root": "pub@example.com",
+  "attestations": [
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 10, "rekorUuid": "uuid-10", "schemaHash": "sha256:aaaa", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 20, "rekorUuid": "uuid-20", "schemaHash": "sha256:bbbb", "previousSchemaHash": "sha256:aaaa", "schemaVersion": "1.0.1"},
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 30, "rekorUuid": "uuid-30", "schemaHash": "sha256:evil", "previousSchemaHash": "sha256:aaaa", "schemaVersion": "1.0.1"}
+  ],
+  "want": {
+    "problems": ["fork"],
+    "chain": ["sha256:aaaa", "sha256:bbbb", "sha256:evil"],
+    "offLineage": [],
+    "lineage": ["pub@example.com"],
+    "forkInvolved": ["sha256:bbbb", "sha256:evil"]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "fork: two revisions each claim to be the first",
+  "note": "A null previousSchemaHash is a claim to be the start of history. Two of them for one tool is the same equivocation, at the root instead of mid-chain.",
+  "toolId": "send_email",
+  "root": "pub@example.com",
+  "attestations": [
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 10, "rekorUuid": "uuid-10", "schemaHash": "sha256:aaaa", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 20, "rekorUuid": "uuid-20", "schemaHash": "sha256:zzzz", "previousSchemaHash": null, "schemaVersion": "1.0.0"}
+  ],
+  "want": {
+    "problems": ["fork"],
+    "chain": ["sha256:aaaa", "sha256:zzzz"],
+    "offLineage": [],
+    "lineage": ["pub@example.com"],
+    "forkInvolved": ["sha256:aaaa", "sha256:zzzz"]
+  }
+}

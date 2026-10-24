@@ -1,0 +1,19 @@
+{
+  "name": "filters out entries that are not this tool's Anchor attestations",
+  "note": "Rekor's index returns everything an identity ever signed. Anchor has to drop the lot locally: another project's attestation type, and an Anchor attestation for a different toolId. Both are legitimate signatures by the same person — neither belongs to this tool's history.",
+  "toolId": "send_email",
+  "bootstrapIdentity": "pub@example.com",
+  "entries": [
+    {"logIndex": 801, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:a001", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"logIndex": 802, "signer": "pub@example.com", "kind": "other", "predicateType": "https://slsa.dev/provenance/v1"},
+    {"logIndex": 803, "signer": "pub@example.com", "kind": "schema-manifest", "toolId": "some_other_tool", "schemaHash": "sha256:9999", "previousSchemaHash": null, "schemaVersion": "2.0.0"}
+  ],
+  "want": {
+    "manifests": 1,
+    "rotations": 0,
+    "notAnchor": 2,
+    "identities": ["pub@example.com"],
+    "problems": [],
+    "chain": ["sha256:a001"]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "a deliberate rollback is still a linear history",
+  "note": "Reverting to earlier content is a normal publishing act: the chain says aaaa -> bbbb -> aaaa, each step naming its real parent. Anchor shows the diff; it does not object. Note this entry is NOT collapsed as a duplicate — its parent differs from the first aaaa's.",
+  "toolId": "send_email",
+  "root": "pub@example.com",
+  "attestations": [
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 10, "rekorUuid": "uuid-10", "schemaHash": "sha256:aaaa", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 20, "rekorUuid": "uuid-20", "schemaHash": "sha256:bbbb", "previousSchemaHash": "sha256:aaaa", "schemaVersion": "1.0.1"},
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 30, "rekorUuid": "uuid-30", "schemaHash": "sha256:aaaa", "previousSchemaHash": "sha256:bbbb", "schemaVersion": "1.0.2"}
+  ],
+  "want": {
+    "problems": [],
+    "chain": ["sha256:aaaa", "sha256:bbbb", "sha256:aaaa"],
+    "offLineage": [],
+    "lineage": ["pub@example.com"]
+  }
+}

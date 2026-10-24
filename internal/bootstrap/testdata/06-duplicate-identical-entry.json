@@ -1,0 +1,18 @@
+{
+  "name": "the same revision signed twice is not a fork",
+  "note": "Two entries with the same schemaHash and the same parent. Both are real log entries and both are kept as records, but the history collapses them: re-attesting identical content is not equivocation.",
+  "toolId": "send_email",
+  "bootstrapIdentity": "pub@example.com",
+  "entries": [
+    {"logIndex": 601, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:a001", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"logIndex": 602, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:a001", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"logIndex": 603, "signer": "pub@example.com", "kind": "schema-manifest", "schemaHash": "sha256:b002", "previousSchemaHash": "sha256:a001", "schemaVersion": "1.0.1"}
+  ],
+  "want": {
+    "manifests": 3,
+    "rotations": 0,
+    "identities": ["pub@example.com"],
+    "problems": [],
+    "chain": ["sha256:a001", "sha256:b002"]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "an unrelated signer's revision is not a fork",
+  "note": "attacker@ attested a schema for this tool, claiming the publisher's latest as its parent. Outside the lineage, so it is not part of the publisher's history and does not make that history non-linear. It is an identity finding (FLAGGED), which verify reports separately.",
+  "toolId": "send_email",
+  "root": "pub@example.com",
+  "attestations": [
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 10, "rekorUuid": "uuid-10", "schemaHash": "sha256:aaaa", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"kind": "schema-manifest", "signer": "attacker@evil.example", "rekorLogIndex": 20, "rekorUuid": "uuid-20", "schemaHash": "sha256:evil", "previousSchemaHash": "sha256:aaaa", "schemaVersion": "1.0.1"}
+  ],
+  "want": {
+    "problems": [],
+    "chain": ["sha256:aaaa"],
+    "offLineage": ["sha256:evil"],
+    "lineage": ["pub@example.com"]
+  }
+}

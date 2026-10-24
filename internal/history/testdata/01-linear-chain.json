@@ -1,0 +1,17 @@
+{
+  "name": "linear chain is clean",
+  "note": "Three revisions, each naming the one logged before it. Listed out of log-index order on purpose: Rekor log order decides the chain, not the order a client happens to hold them in.",
+  "toolId": "send_email",
+  "root": "pub@example.com",
+  "attestations": [
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 30, "rekorUuid": "uuid-30", "schemaHash": "sha256:cccc", "previousSchemaHash": "sha256:bbbb", "schemaVersion": "1.0.2"},
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 10, "rekorUuid": "uuid-10", "schemaHash": "sha256:aaaa", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"kind": "schema-manifest", "signer": "pub@example.com", "rekorLogIndex": 20, "rekorUuid": "uuid-20", "schemaHash": "sha256:bbbb", "previousSchemaHash": "sha256:aaaa", "schemaVersion": "1.0.1"}
+  ],
+  "want": {
+    "problems": [],
+    "chain": ["sha256:aaaa", "sha256:bbbb", "sha256:cccc"],
+    "offLineage": [],
+    "lineage": ["pub@example.com"]
+  }
+}

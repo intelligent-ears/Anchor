@@ -1,0 +1,17 @@
+{
+  "name": "rotation not signed by the identity handing off is not a link",
+  "note": "new@ cannot authorize itself. The rotation claims old@ -> new@ but was signed by new@, so it joins nothing, and new@'s revision is off-lineage rather than part of the chain.",
+  "toolId": "send_email",
+  "root": "old@example.com",
+  "attestations": [
+    {"kind": "schema-manifest", "signer": "old@example.com", "rekorLogIndex": 10, "rekorUuid": "uuid-10", "schemaHash": "sha256:aaaa", "previousSchemaHash": null, "schemaVersion": "1.0.0"},
+    {"kind": "identity-rotation", "signer": "new@example.com", "rekorLogIndex": 20, "rekorUuid": "uuid-20", "oldIdentity": "old@example.com", "newIdentity": "new@example.com"},
+    {"kind": "schema-manifest", "signer": "new@example.com", "rekorLogIndex": 30, "rekorUuid": "uuid-30", "schemaHash": "sha256:bbbb", "previousSchemaHash": "sha256:aaaa", "schemaVersion": "1.0.1"}
+  ],
+  "want": {
+    "problems": [],
+    "chain": ["sha256:aaaa"],
+    "offLineage": ["sha256:bbbb"],
+    "lineage": ["old@example.com"]
+  }
+}
