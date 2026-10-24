@@ -7,22 +7,30 @@ cmd/anchor/         CLI entry point and per-command flag handling
 internal/canon/      RFC 8785 (JCS) canonicalization + SHA-256 hashing
 internal/predicate/  in-toto v1 Statement construction, Anchor's two predicate types
 internal/signer/     shells out to cosign; parses the returned Sigstore bundle
-internal/rekorapi/   read-only lookups against the public Rekor REST API
+internal/rekorapi/   read-only Rekor REST lookups, behind a Client interface
 internal/state/      local .anchor/state.json + log-index.json
+internal/history/    strict-linear-chain + fork detection over a tool's history
+internal/bootstrap/  rebuilds a tool's history from Rekor with no local state
 internal/diff/       human-readable diff between two schema revisions
 internal/identity/   identity-string comparison (case-insensitive for email)
 ```
 
 Each package has one job, and the dependency direction is one-way:
-`cmd/anchor` orchestrates all of them; none of the `internal/*` packages
-import each other except `internal/state`, which imports
-`internal/identity` for its rotation-bridge lookup. Nothing in
-`internal/*` shells out to anything except `internal/signer`, which is
-the only package that talks to `cosign`; nothing in `internal/*` talks to
-the network except `internal/rekorapi`, which is the only package that
-talks to Rekor directly. This is deliberate: it's what makes it possible
-to state precisely (as `docs/DESIGN.md` does) which trust decisions are
-made in Go and which are delegated to Sigstore's own tooling.
+`cmd/anchor` orchestrates all of them, and no `internal/*` package
+imports anything above it in that list. `internal/canon`,
+`internal/predicate`, `internal/diff` and `internal/identity` are leaves.
+`internal/state` and `internal/history` import `internal/identity` (and
+`internal/history` also `internal/predicate`) to compare identities and
+read statements. `internal/bootstrap` sits on top of the rest, because
+rebuilding a history is exactly the job of composing them.
+
+Nothing in `internal/*` shells out to anything except `internal/signer`,
+which is the only package that talks to `cosign`; nothing in `internal/*`
+talks to the network except `internal/rekorapi`, which is the only package
+that talks to Rekor directly. This is deliberate: it's what makes it
+possible to state precisely (as `docs/DESIGN.md` does) which trust
+decisions are made in Go and which are delegated to Sigstore's own
+tooling.
 
 - **`internal/canon`** — turns raw schema JSON into RFC 8785 canonical
   bytes (via `github.com/gowebpki/jcs`) and hashes them. This is the only
@@ -44,11 +52,30 @@ made in Go and which are delegated to Sigstore's own tooling.
   signed bundle for Anchor's own bookkeeping.
 
 - **`internal/rekorapi`** — the only package that talks to Rekor
-  directly, and only for read-only lookups by log index or UUID (the two
-  keys the public Rekor search API actually supports — see
-  `docs/DESIGN.md` for why that matters). Used both to confirm a
-  freshly-signed entry is really public, and to re-confirm a cached
-  entry is still there before trusting it.
+  directly, and only for read-only lookups: by log index or UUID, and by
+  signer identity (the keys the public Rekor search API actually supports
+  — see `docs/DESIGN.md` for why that matters). Used to confirm a
+  freshly-signed entry is really public, to re-confirm a cached entry is
+  still there before trusting it, and to discover a publisher's entries
+  during bootstrap. Retries the responses that mean "ask again later" (429
+  and transient 5xx), honouring `Retry-After`. The whole surface is the
+  `Client` interface, so everything built on it can be tested against
+  fixture entries instead of the live log.
+
+- **`internal/history`** — the strict-linear-chain rule: given a set of
+  verified attestations and a *publisher lineage* (a root identity plus
+  every identity joined to it by an attested rotation), it reports forks,
+  gaps and ordering problems. Pure logic — no I/O, no crypto, no network
+  — which is why its tests are plain JSON fixtures.
+
+- **`internal/bootstrap`** — rebuilds a tool's history from the public log
+  for a client with no local state: searches by the claimed publisher
+  identity, filters for Anchor's predicates and that `toolId`, verifies
+  each candidate, and follows attested rotations to successor identities.
+  Takes its Rekor client and its verifier as interfaces, so the whole
+  reconstruction is testable without cosign and without writing to the
+  log. See `docs/DESIGN.md` for the rule about where the claimed identity
+  may come from.
 
 - **`internal/state`** — the local `.anchor/state.json` (trust-on-first-use
   cache of each tool's last known-good hash/identity) and
@@ -102,6 +129,12 @@ live schema-file.json
       │  os.ReadFile
       ▼
 internal/canon.CanonicalizeAndHash            → liveHash
+      │
+      ▼ [--bootstrap-from-identity <id> given?]
+internal/bootstrap.Discover(toolID, id)
+      │  searches Rekor by signer identity, verifies each candidate,
+      │  follows attested rotations, appends what it verified to local
+      │  state. Refuses rather than truncate a capped scan.
       ▼
 internal/state.Store.FindByHash(toolID, liveHash)
       │
@@ -116,6 +149,14 @@ internal/signer.VerifyBundle(matched.BundlePath, matched.CanonicalPath)
 internal/rekorapi.GetByUUID(matched.RekorUUID)
       │  live re-confirmation the entry is still on the public log
       ▼
+internal/history.NewLineage(root, atts) + .Check(atts, lineage)
+      │  every attestation on file for the tool is re-verified and read
+      │  back out of its signed statement, then the whole chain is
+      │  checked: one linear history, previousSchemaHash end to end
+      │
+      ├─ fork / gap / out-of-order ───────────────► FORKED (equivocation)
+      │
+      ▼ linear
 [no local KnownGood yet?] ─────────────────────────► OK (trust-on-first-use)
       │
       ▼ compare matched.PublisherIdentity to KnownGood.PublisherIdentity
@@ -136,5 +177,11 @@ internal/state.Store.HasRotationBridge(toolID, old, new)
 
 In every branch that ends in `OK`, `internal/state.Store` is updated to
 the newly-confirmed hash/identity before `verify` returns — so the next
-call has the right baseline. In `BLOCKED` and `FLAGGED`, it deliberately
-is not.
+call has the right baseline. In `BLOCKED`, `FLAGGED` and `FORKED`, it
+deliberately is not.
+
+The lineage root is whichever of these the publisher of the schema cannot
+choose: the identity passed to `--bootstrap-from-identity` (which came
+from the operator), else the identity this client previously approved,
+else — for a client with a local index but no known-good yet — every
+signer in that index.
